@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyPilot Pro Simülatörü</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .feedback-correct {
+            animation: correct-feedback-bg 0.5s ease;
+        }
+        .feedback-incorrect {
+            animation: incorrect-feedback-bg 0.5s ease;
+        }
+        @keyframes correct-feedback-bg {
+            from { background-color: #10B981; }
+            to { background-color: #111827; } /* bg-gray-900 */
+        }
+        @keyframes incorrect-feedback-bg {
+            from { background-color: #EF4444; }
+            to { background-color: #111827; } /* bg-gray-900 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="absolute top-4 right-4">
+        <button id="lang-tr" class="btn bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">TR</button>
+        <button id="lang-en" class="btn bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">EN</button>
+    </div>
+
+    <div id="app" class="w-full max-w-2xl text-center">
+
+        <!-- Başlangıç Ekranı -->
+        <div id="start-screen" class="space-y-6">
+            <h1 id="main-title" class="text-5xl font-black text-blue-400">Triletter Sequence Reaction ✈️</h1>
+            <p id="main-description" class="text-lg text-gray-300 max-w-xl mx-auto">
+                3 kez arka arkaya sesli veya sessiz harfle başlayan bir harf dizisi duyduğunuzda ilgili butona basın.
+            </p>
+            
+            <!-- Ayarlar Bölümü -->
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 space-y-4">
+                <h2 id="general-settings-title" class="text-xl font-bold">Genel Ayarlar</h2>
+                <div class="flex items-center justify-center gap-6">
+                    <!-- Kelime Aralığı Ayarı -->
+                    <div class="flex-grow">
+                        <label for="interval-slider" id="interval-text-label" class="block text-sm font-medium text-gray-300">
+                            <span id="interval-label-prefix">Kelime Aralığı</span>: <span id="interval-value" class="font-bold text-yellow-400">4</span> <span id="interval-label-suffix">saniye</span>
+                        </label>
+                        <input id="interval-slider" type="range" min="1" max="10" value="4" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <!-- Kelime Görünürlük Ayarı -->
+                    <div>
+                        <label id="visual-mode-label" class="block text-sm font-medium text-gray-300 mb-2">Görsel Mod</label>
+                        <button id="toggle-visibility-btn" class="btn p-3 bg-gray-700 rounded-full"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                 <button id="start-btn" class="btn w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-12 rounded-lg text-xl shadow-lg">
+                    Teste Başla!
+                </button>
+                <button id="settings-btn" class="btn w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg text-xl shadow-lg">
+                    Kelime Listesi
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Ekranı -->
+        <div id="test-screen" class="hidden">
+            <div class="grid grid-cols-2 gap-4 mb-4 text-2xl font-bold">
+                <div class="bg-gray-800 p-4 rounded-lg"><span id="timer-label">SÜRE</span>: <span id="timer" class="text-yellow-400">60</span>s</div>
+                <div class="bg-gray-800 p-4 rounded-lg"><span id="score-label">SKOR</span>: <span id="score" class="text-green-400">0</span></div>
+            </div>
+            <div id="word-display" class="my-6 p-10 bg-gray-800 border-4 border-gray-600 rounded-lg text-6xl font-extrabold tracking-widest min-h-[160px] flex items-center justify-center">...</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                <button id="sequence-consonant-btn" class="btn bg-red-600 hover:bg-red-700 text-white font-bold py-10 px-6 rounded-lg text-xl shadow-lg">3'ü de Sessiz</button>
+                <button id="sequence-vowel-btn" class="btn bg-green-600 hover:bg-green-700 text-white font-bold py-10 px-6 rounded-lg text-xl shadow-lg">3'ü de Sesli</button>
+            </div>
+            <div id="feedback-panel" class="mt-4 text-gray-400 text-sm h-5"></div>
+            <div class="flex items-center justify-center gap-4 mt-6 border-t border-gray-700 pt-6">
+                <button id="restart-game-btn" class="btn w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg text-md shadow-lg">Tekrar Dene</button>
+                <button id="main-menu-game-btn" class="btn w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg text-md shadow-lg">Ana Menü</button>
+                <button id="toggle-visibility-game-btn" class="btn p-3 bg-gray-700 rounded-full"></button>
+            </div>
+        </div>
+
+        <!-- Sonuç Ekranı -->
+        <div id="results-screen" class="hidden space-y-6">
+            <h1 class="text-4xl font-bold">Test Bitti! 🎉</h1>
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4 text-xl">
+                <div><div class="text-gray-400 text-sm">TOPLAM SKOR</div><div id="final-score" class="text-4xl font-black text-blue-400">0</div></div>
+                <div><div class="text-gray-400 text-sm">DOĞRU DİZİ</div><span id="final-correct" class="text-green-400 font-bold">0</span></div>
+                <div><div class="text-gray-400 text-sm">YANLIŞ DİZİ</div><span id="final-incorrect" class="text-red-400 font-bold">0</span></div>
+            </div>
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mt-4">
+                <button id="restart-btn" class="btn w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg">Tekrar Dene</button>
+                <button id="main-menu-btn" class="btn w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg">Ana Menüye Dön</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modallar -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">...</div>
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">...</div>
+
+
+    <script>
+        // --- DOM Elementleri ve Ikonlar---
+        const appBody = document.body;
+        const startScreen = document.getElementById('start-screen');
+        const testScreen = document.getElementById('test-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const startBtn = document.getElementById('start-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const mainMenuBtn = document.getElementById('main-menu-btn');
+        const restartGameBtn = document.getElementById('restart-game-btn');
+        const mainMenuGameBtn = document.getElementById('main-menu-game-btn');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const wordDisplay = document.getElementById('word-display');
+        const sequenceVowelBtn = document.getElementById('sequence-vowel-btn');
+        const sequenceConsonantBtn = document.getElementById('sequence-consonant-btn');
+        const feedbackPanel = document.getElementById('feedback-panel');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const finalCorrectDisplay = document.getElementById('final-correct');
+        const finalIncorrectDisplay = document.getElementById('final-incorrect');
+        
+        // Yeni Ayar Elementleri
+        const intervalSlider = document.getElementById('interval-slider');
+        const intervalValue = document.getElementById('interval-value');
+        const intervalText = document.getElementById('interval-text');
+        const toggleVisibilityBtn = document.getElementById('toggle-visibility-btn');
+        const toggleVisibilityGameBtn = document.getElementById('toggle-visibility-game-btn');
+        
+        const eyeOpenIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+        const eyeClosedIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M21.0006 12.0007C19.2536 15.5766 15.8779 18 12 18M12 18C8.12204 18 4.7463 15.5766 2.99977 12.0002M12 18L12 21M19.4218 14.4218L21.4999 16.5M16.2304 16.9687L17.5 19.5M4.57812 14.4218L2.5 16.5M7.76953 16.9687L6.5 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+        // Modalların HTML içeriğini dinamik olarak ekle
+        document.getElementById('settings-modal').innerHTML = `<div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg text-left space-y-4"><h2 id="word-list-settings-title" class="text-2xl font-bold">Kelime Listesi Ayarları (JSON)</h2><p id="word-list-settings-p" class="text-sm text-gray-400">Burada kelime listesini düzenleyebilirsiniz. Her kelime çift tırnak içinde olmalı ve virgülle ayrılmalıdır. Listenin tamamı \`[\` ile başlayıp \`]\` ile bitmelidir.</p><textarea id="word-list-editor" class="w-full h-64 bg-gray-900 text-white font-mono p-2 rounded border border-gray-600"></textarea><div id="json-error" class="text-red-400 text-sm hidden">Geçersiz JSON formatı! Lütfen listenizi kontrol edin.</div><div class="flex justify-between items-center"><button id="reset-words-btn" class="btn bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Varsayılana Sıfırla</button><div class="flex gap-4"><button id="cancel-settings-btn" class="btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">İptal</button><button id="save-settings-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Kaydet</button></div></div></div>`;
+        document.getElementById('confirm-modal').innerHTML = `<div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center space-y-4"><h2 id="confirm-title-reset" class="text-xl font-bold">Emin misiniz?</h2><p id="confirm-text-reset" class="text-gray-300">Bu işlem geri alınamaz.</p><div class="flex justify-center gap-4"><button id="cancel-confirm-btn" class="btn bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded">İptal</button><button id="confirm-action-btn" class="btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded">Onayla</button></div></div>`;
+        
+        const wordListEditor = document.getElementById('word-list-editor'), jsonError = document.getElementById('json-error');
+        const saveSettingsBtn = document.getElementById('save-settings-btn'), cancelSettingsBtn = document.getElementById('cancel-settings-btn'), resetWordsBtn = document.getElementById('reset-words-btn');
+        const confirmModal = document.getElementById('confirm-modal'), confirmTitle = document.getElementById('confirm-title'), confirmText = document.getElementById('confirm-text');
+        const confirmActionBtn = document.getElementById('confirm-action-btn'), cancelConfirmBtn = document.getElementById('cancel-confirm-btn');
+
+
+        // --- Kelime Veritabanı ---
+        const defaultWordList = ["Alfa", "Echo", "India", "Oscar", "Uniform", "Bravo", "Charlie", "Delta", "Foxtrot", "Golf", "Hotel", "Juliet", "Kilo", "Lima", "Mike", "November", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu"];
+        let wordList = [];
+        const ENGLISH_VOWELS = "aeiouAEIOU";
+        
+        // --- Ayarlar ve Oyun Durumu (State) ---
+        let settings = { wordInterval: 4000, isWordVisible: true };
+        let score = 0, correctSequences = 0, incorrectSequences = 0, timer = 60;
+        let gameInterval, timerInterval, countdownInterval;
+        let shuffledWords = [], wordIndex = 0, sequenceHistory = [];
+        let confirmCallback = null;
+
+        // --- Metin Okuma (Text-to-Speech) ---
+        let utterance;
+        function initSpeechSynthesis() {
+            utterance = new SpeechSynthesisUtterance();
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8; 
+            utterance.text = ' '; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- Ayar ve Kelime Yönetimi ---
+        function loadSettings() {
+            const storedSettings = localStorage.getItem('skyPilotSettings');
+            if (storedSettings) { settings = JSON.parse(storedSettings); }
+            intervalSlider.value = settings.wordInterval / 1000;
+            intervalValue.textContent = settings.wordInterval / 1000;
+            intervalText.textContent = settings.wordInterval / 1000;
+        }
+        function saveSettings() {
+            localStorage.setItem('skyPilotSettings', JSON.stringify(settings));
+        }
+        function loadWordList() {
+            const storedWords = localStorage.getItem('skyPilotWordList');
+            wordList = storedWords ? JSON.parse(storedWords) : [...defaultWordList];
+        }
+        function saveWordList() {
+            localStorage.setItem('skyPilotWordList', JSON.stringify(wordList));
+        }
+
+        // --- UI Güncelleme Fonksiyonları ---
+        function updateVisibilityUI() {
+            const icon = settings.isWordVisible ? eyeOpenIcon : eyeClosedIcon;
+            toggleVisibilityBtn.innerHTML = icon;
+            toggleVisibilityGameBtn.innerHTML = icon;
+            if (!testScreen.classList.contains('hidden')) {
+                 wordDisplay.style.opacity = settings.isWordVisible ? '1' : '0';
+            }
+        }
+        
+        // --- Hata Düzeltmesi: Yardımcı Fonksiyonlar Bölümü Eklendi ---
+        function categorizeWordByFirstLetter(word) {
+            if (!word) return null;
+            return ENGLISH_VOWELS.includes(word[0]) ? 'vowel' : 'consonant';
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // --- Oyun Mantığı ---
+        function resetGame() {
+            clearInterval(timerInterval); clearInterval(gameInterval); clearInterval(countdownInterval);
+            window.speechSynthesis.cancel();
+            testScreen.classList.add('hidden'); resultsScreen.classList.add('hidden'); startScreen.classList.add('hidden');
+            wordDisplay.style.fontSize = ''; wordDisplay.style.opacity = '1';
+        }
+        
+        function startCountdown() {
+            resetGame(); testScreen.classList.remove('hidden');
+            sequenceVowelBtn.disabled = true; sequenceConsonantBtn.disabled = true;
+            let count = 3; wordDisplay.textContent = count; wordDisplay.style.fontSize = '10rem';
+            countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) { wordDisplay.textContent = count; } 
+                else { clearInterval(countdownInterval); wordDisplay.style.fontSize = ''; startGame(); }
+            }, 1000);
+        }
+        
+        function startGame() {
+            score = 0; correctSequences = 0; incorrectSequences = 0; timer = 60; wordIndex = 0; sequenceHistory = [];
+            scoreDisplay.textContent = score; timerDisplay.textContent = timer; feedbackPanel.textContent = '';
+            updateVisibilityUI();
+            sequenceVowelBtn.disabled = false; sequenceConsonantBtn.disabled = false;
+            shuffledWords = [...wordList];
+
+            if (shuffledWords.length === 0) {
+                wordDisplay.textContent = "Kelime Listesi Boş!";
+                return;
+            }
+            shuffleArray(shuffledWords);
+            
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // İlk kelimeyi göster ve ardından aralıkları başlat
+            showNextWord();
+            gameInterval = setInterval(showNextWord, settings.wordInterval);
+        }
+
+        function showNextWord() {
+            if (timer <= 0) return;
+            if (wordIndex >= shuffledWords.length) { 
+                wordIndex = 0; 
+                shuffleArray(shuffledWords);
+            }
+            const currentWordText = shuffledWords[wordIndex];
+            const currentWordType = categorizeWordByFirstLetter(currentWordText);
+            wordDisplay.textContent = currentWordText.toUpperCase();
+            if (utterance) { window.speechSynthesis.cancel(); utterance.text = currentWordText; window.speechSynthesis.speak(utterance); }
+            sequenceHistory.push(currentWordType);
+            if (sequenceHistory.length > 3) sequenceHistory.shift();
+            wordIndex++;
+        }
+        
+        function handleSequenceCheck(userChoice) {
+             if (sequenceHistory.length !== 3) { showFeedback('Henüz 3 kelime gösterilmedi!', 'incorrect'); return; }
+             const isCorrect = sequenceHistory.every(type => type === userChoice);
+             if (isCorrect) { score += 100; correctSequences++; showFeedback('Doğru Dizi!', 'correct'); } 
+             else { score -= 50; incorrectSequences++; showFeedback('Yanlış Dizi!', 'incorrect'); }
+             scoreDisplay.textContent = score; sequenceHistory = [];
+        }
+        
+        function showFeedback(message, type) {
+            feedbackPanel.textContent = message;
+            appBody.classList.remove('feedback-correct', 'feedback-incorrect');
+            setTimeout(() => appBody.classList.add(type === 'correct' ? 'feedback-correct' : 'feedback-incorrect'), 10);
+        }
+
+        function updateTimer() { if (--timer <= 0) endGame(); timerDisplay.textContent = timer; }
+        function endGame() {
+            resetGame(); resultsScreen.classList.remove('hidden');
+            finalScoreDisplay.textContent = score; finalCorrectDisplay.textContent = correctSequences; finalIncorrectDisplay.textContent = incorrectSequences;
+        }
+        function showConfirmDialog(title, text, onConfirm) {
+            confirmTitle.textContent = title; confirmText.textContent = text;
+            confirmCallback = onConfirm; confirmModal.classList.remove('hidden');
+        }
+
+        // --- Olay Dinleyicileri ---
+        function handleTestStart() { if (!utterance) initSpeechSynthesis(); startCountdown(); }
+        function handleReturnToMenu() { resetGame(); startScreen.classList.remove('hidden'); }
+
+        startBtn.addEventListener('click', handleTestStart);
+        restartBtn.addEventListener('click', handleTestStart);
+        mainMenuBtn.addEventListener('click', handleReturnToMenu);
+        restartGameBtn.addEventListener('click', handleTestStart);
+        mainMenuGameBtn.addEventListener('click', handleReturnToMenu);
+        sequenceVowelBtn.addEventListener('click', () => handleSequenceCheck('vowel'));
+        sequenceConsonantBtn.addEventListener('click', () => handleSequenceCheck('consonant'));
+
+        // Ayar Dinleyicileri
+        intervalSlider.addEventListener('input', (e) => {
+            settings.wordInterval = e.target.value * 1000;
+            intervalValue.textContent = e.target.value;
+            intervalText.textContent = e.target.value;
+            saveSettings();
+        });
+        [toggleVisibilityBtn, toggleVisibilityGameBtn].forEach(btn => {
+            btn.addEventListener('click', () => {
+                settings.isWordVisible = !settings.isWordVisible;
+                saveSettings();
+                updateVisibilityUI();
+            });
+        });
+        settingsBtn.addEventListener('click', () => {
+            document.getElementById('word-list-editor').value = JSON.stringify(wordList, null, 2);
+            document.getElementById('json-error').classList.add('hidden');
+            document.getElementById('settings-modal').classList.remove('hidden');
+        });
+        cancelSettingsBtn.addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
+        saveSettingsBtn.addEventListener('click', () => {
+            try {
+                const newWords = JSON.parse(document.getElementById('word-list-editor').value);
+                if (Array.isArray(newWords) && newWords.every(item => typeof item === 'string')) {
+                    wordList = newWords; saveWordList(); document.getElementById('settings-modal').classList.add('hidden');
+                } else { throw new Error("Invalid array format"); }
+            } catch (e) { document.getElementById('json-error').classList.remove('hidden'); }
+        });
+        resetWordsBtn.addEventListener('click', () => {
+            showConfirmDialog("Listeyi Sıfırla", "Varsayılan kelime listesi yüklenecek. Emin misiniz?", () => {
+                wordList = [...defaultWordList]; saveWordList();
+                document.getElementById('word-list-editor').value = JSON.stringify(wordList, null, 2);
+            });
+        });
+        cancelConfirmBtn.addEventListener('click', () => confirmModal.classList.add('hidden'));
+        confirmActionBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); confirmModal.classList.add('hidden'); });
+
+        // Dil Değiştirme
+        const translations = {
+            en: {
+                "main-title": "Triletter Sequence Reaction ✈️",
+                "main-description": "Press the corresponding button when you hear a sequence of three letters starting with a vowel or a consonant.",
+                "start-btn": "Start Test!",
+                "settings-btn": "Word List",
+                "sequence-consonant-btn": "All 3 Consonants",
+                "sequence-vowel-btn": "All 3 Vowels",
+                "restart-game-btn": "Try Again",
+                "main-menu-game-btn": "Main Menu",
+                "restart-btn": "Try Again",
+                "main-menu-btn": "Back to Main Menu",
+                "final-score-label": "TOTAL SCORE",
+                "final-correct-label": "CORRECT SEQUENCE",
+                "final-incorrect-label": "INCORRECT SEQUENCE",
+                "interval-label-prefix": "Word Interval",
+                "interval-label-suffix": "seconds",
+                "visual-mode-label": "Visual Mode",
+                "word-list-settings-title": "Word List Settings (JSON)",
+                "word-list-settings-p": "You can edit the word list here. Each word must be in double quotes and separated by a comma. The entire list must start with \`[\` and end with \`]\`.",
+                "reset-words-btn": "Reset to Default",
+                "cancel-settings-btn": "Cancel",
+                "save-settings-btn": "Save",
+                "confirm-title-reset": "Reset List",
+                "confirm-text-reset": "The default word list will be loaded. Are you sure?",
+                "confirm-action-btn": "Confirm",
+                "cancel-confirm-btn": "Cancel",
+                "timer-label": "TIME",
+                "score-label": "SCORE",
+                "test-ended-title": "Test Finished! 🎉",
+                "feedback-not-enough-words": "Not enough words have been shown yet!",
+                "feedback-correct-sequence": "Correct Sequence!",
+                "feedback-incorrect-sequence": "Incorrect Sequence!",
+                "empty-word-list": "Word List is Empty!",
+                "general-settings-title": "General Settings"
+            },
+            tr: {
+                "main-title": "Triletter Sequence Reaction ✈️",
+                "main-description": "3 kez arka arkaya sesli veya sessiz harfle başlayan bir harf dizisi duyduğunuzda ilgili butona basın.",
+                "start-btn": "Teste Başla!",
+                "settings-btn": "Kelime Listesi",
+                "sequence-consonant-btn": "3'ü de Sessiz",
+                "sequence-vowel-btn": "3'ü de Sesli",
+                "restart-game-btn": "Tekrar Dene",
+                "main-menu-game-btn": "Ana Menü",
+                "restart-btn": "Tekrar Dene",
+                "main-menu-btn": "Ana Menüye Dön",
+                "final-score-label": "TOPLAM SKOR",
+                "final-correct-label": "DOĞRU DİZİ",
+                "final-incorrect-label": "YANLIŞ DİZİ",
+                "interval-label-prefix": "Kelime Aralığı",
+                "interval-label-suffix": "saniye",
+                "visual-mode-label": "Görsel Mod",
+                "word-list-settings-title": "Kelime Listesi Ayarları (JSON)",
+                "word-list-settings-p": "Burada kelime listesini düzenleyebilirsiniz. Her kelime çift tırnak içinde olmalı ve virgülle ayrılmalıdır. Listenin tamamı \`[\` ile başlayıp \`]\` ile bitmelidir.",
+                "reset-words-btn": "Varsayılana Sıfırla",
+                "cancel-settings-btn": "İptal",
+                "save-settings-btn": "Kaydet",
+                "confirm-title-reset": "Listeyi Sıfırla",
+                "confirm-text-reset": "Varsayılan kelime listesi yüklenecek. Emin misiniz?",
+                "confirm-action-btn": "Onayla",
+                "cancel-confirm-btn": "İptal",
+                "timer-label": "SÜRE",
+                "score-label": "SKOR",
+                "test-ended-title": "Test Bitti! 🎉",
+                "feedback-not-enough-words": "Henüz 3 kelime gösterilmedi!",
+                "feedback-correct-sequence": "Doğru Dizi!",
+                "feedback-incorrect-sequence": "Yanlış Dizi!",
+                "empty-word-list": "Kelime Listesi Boş!",
+                "general-settings-title": "Genel Ayarlar"
+            }
+        };
+
+        function setLanguage(lang) {
+            document.documentElement.lang = lang;
+            for (const key in translations[lang]) {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.innerHTML = translations[lang][key];
+                }
+            }
+        }
+
+        document.getElementById('lang-tr').addEventListener('click', () => setLanguage('tr'));
+        document.getElementById('lang-en').addEventListener('click', () => setLanguage('en'));
+
+        // --- Başlangıç ---
+        document.addEventListener('DOMContentLoaded', (event) => {
+            loadWordList();
+            loadSettings();
+            updateVisibilityUI();
+            setLanguage('tr');
+        });
+    </script>
+    </script>
+</body>
+</html>
